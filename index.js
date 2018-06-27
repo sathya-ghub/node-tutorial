@@ -1,19 +1,50 @@
-var rect = require('./rectangle');
+const fs = require('fs');
+const path = require('path');
+const http = require('http');
 
-function solveRect(l,b) {
-    console.log("Solving for rectangle with l = " + l + " and b = " + b);
+const hostname = 'localhost';
+const port = 3000;
 
-    if (l <= 0 || b <= 0) {
-        console.log("Rectangle dimensions should be greater than zero:  l = "
-               + l + ",  and b = " + b);
+const server = http.createServer((req, res) => {
+  console.log('Request for ' + req.url + ' by method ' + req.method);
+
+  if (req.method == 'GET') {
+    var fileUrl;
+    if (req.url == '/') fileUrl = '/index.html';
+    else fileUrl = req.url;
+
+    var filePath = path.resolve('./public'+fileUrl);
+    const fileExt = path.extname(filePath);
+    if (fileExt == '.html') {
+      fs.exists(filePath, (exists) => {
+        if (!exists) {
+          res.statusCode = 404;
+          res.setHeader('Content-Type', 'text/html');
+          res.end('<html><body><h1>Error 404: ' + fileUrl + 
+                      ' not found</h1></body></html>');
+          return;
+        }
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/html');
+        fs.createReadStream(filePath).pipe(res);
+      });
     }
     else {
-	    console.log("The area of the rectangle is " + rect.area(l,b));
-	    console.log("The perimeter of the rectangle is " + rect.perimeter(l,b));
+      res.statusCode = 404;
+      res.setHeader('Content-Type', 'text/html');
+      res.end('<html><body><h1>Error 404: ' + fileUrl + 
+              ' not a HTML file</h1></body></html>');
     }
-}
+  }
+  else {
+      res.statusCode = 404;
+      res.setHeader('Content-Type', 'text/html');
+      res.end('<html><body><h1>Error 404: ' + req.method + 
+              ' not supported</h1></body></html>');
+  }
+});
 
-solveRect(2,4);
-solveRect(3,5);
-solveRect(0,0);
-solveRect(-5,5);
+
+server.listen(port,hostname, ()=>{
+    console.log(`Server listening at: http://${hostname}:${port}`);
+});
